@@ -1,0 +1,51 @@
+# Dependencies and build output
+node_modules/
+dist/
+out/
+release/
+coverage/
+native/**/bin/
+native/**/obj/
+native/publish/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+.npmrc
+.netrc
+*.pem
+*.key
+*.pfx
+*.p12
+
+# Application state, sessions, and local databases
+CassettePilot Data/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+cookies*
+session*
+
+# User recordings, downloaded media, and generated audio
+*.wav
+*.mp3
+*.flac
+*.m4a
+*.ogg
+
+# Logs, crash dumps, and temporary files
+*.log
+*.dmp
+*.tmp
+*.temp
+*.bak
+
+# Editor and machine-specific files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.user
+*.suo

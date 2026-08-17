@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#10100f">
+    <title>CassettePilot</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body data-mode="edit">
+    <div class="app-shell">
+      <nav class="rail" aria-label="Primary navigation">
+        <button class="rail-button active" id="mode-edit" aria-label="Editing mode" title="Editing mode" aria-pressed="true">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h16"/></svg>
+        </button>
+        <button class="rail-button" id="mode-playback" aria-label="Playback mode" title="Playback mode" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><path d="m8 5 11 7-11 7z"/></svg>
+        </button>
+        <button class="rail-button" aria-label="Tape monitor" title="Tape monitor" id="mode-monitor" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><circle cx="7" cy="12" r="3"/><circle cx="17" cy="12" r="3"/><path d="M7 9h10M7 15h10"/></svg>
+        </button>
+        <div class="rail-spacer"></div>
+        <button class="rail-button" aria-label="Settings" title="Settings" id="open-settings">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1A8 8 0 0 0 14.8 6L14.5 3h-5L9.2 6a8 8 0 0 0-1.7 1.1l-2.4-1-2 3.4L5.1 11A7 7 0 0 0 5 12c0 .3 0 .7.1 1l-2 1.5 2 3.4 2.4-1A8 8 0 0 0 9.2 18l.3 3h5l.3-3a8 8 0 0 0 1.7-1.1l2.4 1 2-3.4-2-1.5c.1-.3.1-.7.1-1z"/></svg>
+        </button>
+      </nav>
+
+      <aside class="mixtape-panel editing-only" aria-label="Mixtapes">
+        <div class="mixtape-heading">
+          <div>
+            <p class="eyebrow">YOUR COLLECTION</p>
+            <h2>Mixtapes</h2>
+          </div>
+          <div class="mixtape-heading-actions">
+            <button class="icon-button" id="new-mixtape-group" title="Create an empty group" aria-label="Create an empty group">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3zM16 12v5M13.5 14.5h5"/></svg>
+            </button>
+            <button class="icon-button" id="new-mixtape" title="Create a new mixtape" aria-label="Create a new mixtape">+</button>
+          </div>
+        </div>
+        <label class="search-box mixtape-search-box">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg>
+          <input id="mixtape-search" type="search" placeholder="Search mixtapes" aria-label="Search mixtapes">
+          <span id="mixtape-count" aria-hidden="true"></span>
+        </label>
+        <div class="mixtape-list" id="mixtape-list"></div>
+      </aside>
+
+      <div class="mixtape-context-menu" id="mixtape-context-menu" role="menu" hidden>
+        <button type="button" role="menuitem" data-mixtape-menu-action="rename">Rename</button>
+        <button type="button" role="menuitem" data-mixtape-menu-action="duplicate">Duplicate</button>
+        <button type="button" role="menuitem" data-mixtape-menu-action="group">Create group</button>
+        <div role="separator"></div>
+        <button type="button" class="danger" role="menuitem" data-mixtape-menu-action="delete">Delete</button>
+      </div>
+
+      <aside class="library-panel editing-only" aria-label="NetEase Library">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">NETEASE LIBRARY</p>
+            <h1 id="library-title">Tracks</h1>
+          </div>
+        </div>
+        <div class="library-tabs" role="tablist" aria-label="NetEase search type">
+          <button id="library-tab-tracks" class="active" role="tab" aria-selected="true" data-library-mode="tracks">Tracks</button>
+          <button id="library-tab-albums" role="tab" aria-selected="false" data-library-mode="albums">Albums</button>
+          <button id="library-tab-playlists" role="tab" aria-selected="false" data-library-mode="playlists">Playlists</button>
+        </div>
+        <label class="search-box">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg>
+          <input id="search-input" type="search" placeholder="Search tracks or paste song ID" aria-label="Search NetEase library">
+          <kbd>↵</kbd>
+        </label>
+        <div class="provider-note" id="provider-note">
+          Search NetEase Cloud Music to add the first track
+        </div>
+        <div class="library-list" id="library-list"></div>
+      </aside>
+
+      <aside class="inspector-card inspector-panel editing-only" aria-label="Clip inspector">
+        <div class="card-heading">
+          <div>
+            <p class="eyebrow">CLIP INSPECTOR</p>
+            <h2 id="inspector-title">Select a clip</h2>
+          </div>
+          <div class="clip-actions">
+            <button class="icon-button small" id="move-left" title="Nudge one second earlier">←</button>
+            <button class="icon-button small" id="move-right" title="Nudge one second later">→</button>
+            <button class="icon-button small danger" id="delete-clip" title="Delete clip">×</button>
+          </div>
+        </div>
+        <div class="inspector-preview" id="inspector-preview">
+          <div class="inspector-artwork" id="inspector-artwork">
+            <img id="inspector-cover" alt="">
+            <span id="inspector-artwork-fallback">CC</span>
+          </div>
+          <div class="inspector-preview-main">
+            <div class="inspector-preview-meta">
+              <span id="inspector-zone">NO SELECTION</span>
+              <strong id="inspector-preview-title">Choose a timeline or buffer clip</strong>
+            </div>
+            <input id="inspector-preview-seek" type="range" min="0" max="1000" value="0" aria-label="Preview position" disabled>
+            <div class="inspector-preview-readout">
+              <span id="inspector-preview-time">0:00.0</span>
+              <span id="inspector-preview-duration">0:00.0</span>
+            </div>
+          </div>
+          <button class="button inspector-preview-button" id="inspector-preview-toggle" disabled>Preview</button>
+        </div>
+        <div class="inspector-fields" id="inspector-fields">
+          <label>IN POINT <div><input data-field="trimStartMs" type="number" min="0" step="0.1"><span>s</span></div></label>
+          <label>OUT POINT <div><input data-field="trimEndMs" type="number" min="0" step="0.1"><span>s</span></div></label>
+          <label>GAIN <div><input data-field="gainDb" type="number" min="-60" max="12" step="0.1"><span>dB</span></div></label>
+          <label>FADE IN <div><input data-field="fadeInMs" type="number" min="0" step="0.1"><span>s</span></div></label>
+          <label>FADE OUT <div><input data-field="fadeOutMs" type="number" min="0" step="0.1"><span>s</span></div></label>
+          <label>NEXT SONG ID <div><input data-field="nextTrackId" type="text" readonly><span>preload</span></div></label>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar editing-only">
+          <div>
+            <div class="breadcrumb"><span>MIXTAPES</span><b>/</b><span id="breadcrumb-mixtape">UNTITLED MIXTAPE</span></div>
+            <input id="project-name" class="project-name" value="Untitled Mixtape" aria-label="Project name">
+          </div>
+          <div class="topbar-actions">
+            <div class="autosave-status" id="autosave-status" role="status" aria-live="polite" title="Mixtapes are saved automatically on this computer">
+              <i aria-hidden="true"></i>
+              <span id="autosave-label">Saved locally</span>
+            </div>
+            <button class="button primary" id="export-wav">
+              <svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 20h14"/></svg>
+              Dub control WAV
+            </button>
+            <button class="button" id="open-dubbing">
+              <svg viewBox="0 0 24 24"><path d="M6 7h12v10H6zM9 10v4M15 10v4M3 12h3M18 12h3"/></svg>
+              Dub to deck
+            </button>
+          </div>
+        </header>
+
+        <section class="transport editing-only">
+          <div class="transport-controls">
+            <button class="transport-button" id="skip-start" title="Go to beginning">
+              <svg viewBox="0 0 24 24"><path d="M6 5v14M18 6l-9 6 9 6z"/></svg>
+            </button>
+            <button class="play-button" id="play-toggle" title="Preview">
+              <svg class="play-icon" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7z"/></svg>
+              <svg class="pause-icon" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg>
+            </button>
+            <button class="transport-button" id="skip-next" title="Next clip">
+              <svg viewBox="0 0 24 24"><path d="M18 5v14M6 6l9 6-9 6z"/></svg>
+            </button>
+          </div>
+          <div class="time-readout">
+            <strong id="current-time">0:00.0</strong>
+            <span>/</span>
+            <span id="total-time">0:00.0</span>
+          </div>
+          <div class="transport-status">
+            <span class="status-pill"><i></i> DIGITAL CLOCK</span>
+            <span id="now-playing">Ready to preview</span>
+          </div>
+          <div class="zoom-control">
+            <span>−</span>
+            <input id="zoom" type="range" min="1" max="12" step="0.25" value="4">
+            <span>+</span>
+          </div>
+        </section>
+
+        <section class="editor editing-only">
+          <div class="timeline-toolbar">
+            <div class="tool-group">
+              <button class="tool active" title="Select tool">
+                <svg viewBox="0 0 24 24"><path d="m7 4 10 8-6 1 3 6-2 1-3-6-4 4z"/></svg>
+              </button>
+              <button class="tool" id="split-clip" title="Split selected clip at playhead">
+                <svg viewBox="0 0 24 24"><circle cx="7" cy="7" r="2.5"/><circle cx="7" cy="17" r="2.5"/><path d="m9 8.5 10 7M9 15.5l10-7"/></svg>
+              </button>
+              <button class="tool" id="undo-action" title="Undo (Ctrl+Z)">
+                <svg viewBox="0 0 24 24"><path d="M9 7 4 12l5 5M5 12h8a6 6 0 0 1 6 6"/></svg>
+              </button>
+              <button class="tool" id="redo-action" title="Redo (Ctrl+Y)">
+                <svg viewBox="0 0 24 24"><path d="m15 7 5 5-5 5M19 12h-8a6 6 0 0 0-6 6"/></svg>
+              </button>
+              <span class="tool-divider"></span>
+              <button class="tool" id="copy-clip" title="Copy clip (Ctrl+C)">
+                <svg viewBox="0 0 24 24"><rect x="8" y="8" width="10" height="11" rx="1"/><path d="M15 8V5H5v11h3"/></svg>
+              </button>
+              <button class="tool" id="paste-clip" title="Paste clip at playhead (Ctrl+V)">
+                <svg viewBox="0 0 24 24"><path d="M9 5h6M9 3h6v4H9zM7 5H5v16h14V5h-2"/><path d="M9 12h6M9 16h4"/></svg>
+              </button>
+            </div>
+            <div class="side-switch" aria-label="Cassette side">
+              <button id="side-a" class="active" type="button" aria-pressed="true">SIDE A</button>
+              <button id="side-b" type="button" aria-pressed="false">SIDE B</button>
+            </div>
+            <label class="tape-length-control" title="Full cassette length; each side receives half">
+              <span>TAPE</span>
+              <input id="tape-length-slider" type="range" min="30" max="120" step="1" value="60" list="tape-lengths">
+              <datalist id="tape-lengths"><option value="46"></option><option value="60"></option><option value="90"></option><option value="120"></option></datalist>
+              <input id="tape-length-custom" type="number" min="1" max="240" step="1" value="60" aria-label="Custom full cassette length in minutes">
+              <span>MIN</span>
+            </label>
+            <span class="side-capacity" id="side-capacity">30:00 / SIDE</span>
+            <button class="snap-toggle active" id="snap-toggle" type="button" aria-pressed="true" title="Snap clip edges only to other clips; gain points snap to 250 ms. Hold Alt to bypass."><i></i> SNAP</button>
+            <span class="timeline-hint">Double-click gain line to add · drag points to automate · double-click point to remove</span>
+          </div>
+          <div class="timeline-scroll" id="timeline-scroll">
+            <div class="timeline-content" id="timeline-content" tabindex="0" aria-label="Mixtape editor timeline">
+              <div class="ruler" id="ruler"></div>
+              <div class="track-label">
+                <div><span id="track-side-label">A1</span><small>TRACK 1</small></div>
+              </div>
+              <div class="clip-lane" id="clip-lane"></div>
+              <div class="tape-overflow" id="tape-overflow"><span id="tape-overflow-label">EXCEEDS SIDE A</span></div>
+              <div class="buffer-divider" aria-hidden="true"></div>
+              <div class="buffer-zone" id="buffer-zone">
+                <div class="buffer-label"><span>BUFFER</span><small>SHARED · SIDE A ↔ SIDE B</small></div>
+                <div class="buffer-canvas" id="buffer-canvas"></div>
+                <p class="buffer-empty" id="buffer-empty">Drag tracks here, or click anywhere and paste a copied clip.</p>
+              </div>
+              <div class="snap-guide" id="snap-guide"><span>SNAP</span></div>
+              <div class="selection-marquee" id="selection-marquee" aria-hidden="true"></div>
+              <div class="playhead" id="playhead"><span></span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="tape-monitor-view" id="tape-monitor-view" aria-label="Tape monitor">
+          <header class="monitor-view-header">
+            <div><p class="eyebrow">CASSETTE INPUT</p><h1>Tape Monitor</h1></div>
+            <p>Inspect the live control signal, decoder confidence, and transport position.</p>
+          </header>
+          <aside class="monitor-card" id="monitor-card">
+            <div class="card-heading">
+              <div>
+                <p class="eyebrow">TAPE INPUT</p>
+                <h2>Transport monitor</h2>
+              </div>
+              <span class="input-badge" id="input-badge">OFFLINE</span>
+            </div>
+            <div class="input-routing">
+              <label for="input-device">INPUT DEVICE</label>
+              <div>
+                <select id="input-device" aria-label="Input device">
+                  <option value="">System default input</option>
+                </select>
+                <button class="icon-button small" id="refresh-inputs" title="Refresh input devices">↻</button>
+              </div>
+            </div>
+            <div class="signal-visual" id="signal-visual">
+              <div class="signal-bars">
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              </div>
+              <div class="signal-center">
+                <span class="carrier-light" id="carrier-light"></span>
+                <strong id="carrier-label">NO CARRIER</strong>
+                <small id="decoder-detail">Waiting for an audio input</small>
+              </div>
+            </div>
+            <div class="input-meter" aria-label="Input signal level">
+              <div><span>INPUT LEVEL</span><b id="input-level-label">NO SIGNAL</b></div>
+              <div class="input-meter-track"><i id="input-level-fill"></i></div>
+              <small id="input-channels">L — · R —</small>
+            </div>
+            <div class="frame-grid">
+              <span>TRACK ID <b id="frame-track">—</b></span>
+              <span>TAPE TIME <b id="frame-time">—</b></span>
+              <span>DRIFT <b id="frame-drift">—</b></span>
+              <span>CONFIDENCE <b id="frame-confidence">—</b></span>
+            </div>
+            <div class="monitor-actions">
+              <button class="button monitor-button" id="start-input">Start audio input</button>
+              <button class="button subtle" id="loopback-test">Codec self-test</button>
+            </div>
+          </aside>
+          <aside class="monitor-card eq-profile-card" id="eq-profile-card">
+            <div class="card-heading">
+              <div>
+                <p class="eyebrow">DECK + CASSETTE DIAGNOSTIC</p>
+                <h2>Tape path health reports</h2>
+              </div>
+              <span class="input-badge" id="eq-calibration-badge">READY</span>
+            </div>
+            <p class="eq-profile-description">Record the identified test signal to a cassette, capture its complete playback in any recording app, then upload that stereo file. The report measures the whole tape path; it does not alter music playback.</p>
+            <div class="eq-profile-fields">
+              <label>SAVED REPORT
+                <select id="eq-profile-select" aria-label="Saved deck and cassette diagnostic report"><option value="">No saved report</option></select>
+              </label>
+              <button class="button subtle" id="delete-eq-profile" disabled>Delete report</button>
+            </div>
+            <div class="eq-calibration-setup">
+              <label>NEW REPORT NAME
+                <input id="eq-profile-name" maxlength="80" value="Deck + cassette" aria-label="New diagnostic report name">
+              </label>
+              <label>CALIBRATION OUTPUT
+                <select id="eq-calibration-output" aria-label="Calibration signal output"><option value="">System default output</option></select>
+              </label>
+            </div>
+            <label class="eq-file-port" id="eq-file-port" for="eq-calibration-file">
+              <input id="eq-calibration-file" type="file" accept="audio/*,.wav,.wave,.flac,.mp3,.m4a,.aac,.ogg" hidden>
+              <span class="eq-file-icon" aria-hidden="true">↑</span>
+              <span><strong>Upload recorded calibration playback</strong><small>Choose or drop a stereo audio file containing the complete three-marker signal</small></span>
+              <b>CHOOSE FILE</b>
+            </label>
+            <div class="eq-file-details" id="eq-file-details" hidden>
+              <strong id="eq-file-name">—</strong>
+              <span id="eq-file-format">—</span>
+            </div>
+            <div class="eq-response" id="eq-response" aria-label="Measured frequency response graph">
+              <div class="eq-response-legend" aria-label="Frequency response channels">
+                <span><i class="left"></i>LEFT</span>
+                <span><i class="right"></i>RIGHT</span>
+              </div>
+              <svg viewBox="0 0 720 190" role="img" aria-labelledby="eq-response-title">
+                <title id="eq-response-title">Measured left and right frequency response</title>
+                <g class="eq-grid"><path d="M55 20H700M55 53.75H700M55 87.5H700M55 121.25H700M55 155H700"/><path d="M55 20V155M216.25 20V155M377.5 20V155M538.75 20V155M700 20V155"/></g>
+                <path id="eq-response-left" class="eq-line left" d=""/>
+                <path id="eq-response-right" class="eq-line right" d=""/>
+                <g class="eq-axis-labels">
+                  <text x="8" y="24">+12 dB</text><text x="14" y="58">+6 dB</text><text x="26" y="91">0 dB</text><text x="20" y="125">−6 dB</text><text x="14" y="159">−12 dB</text>
+                  <text x="55" y="180">40 Hz</text><text x="666" y="180">16 kHz</text>
+                </g>
+              </svg>
+            </div>
+            <div class="diagnostic-metrics" id="diagnostic-metrics" hidden>
+              <article><span>CHANNEL BALANCE</span><strong id="diagnostic-balance-value">—</strong><small id="diagnostic-balance-detail">—</small></article>
+              <article><span>−6 dB BANDWIDTH</span><strong id="diagnostic-bandwidth-value">—</strong><small id="diagnostic-bandwidth-detail">—</small></article>
+              <article><span>APPROX. THD</span><strong id="diagnostic-thd-value">—</strong><small id="diagnostic-thd-detail">—</small></article>
+              <article><span>SIGNAL / NOISE</span><strong id="diagnostic-snr-value">—</strong><small id="diagnostic-snr-detail">—</small></article>
+              <article><span>STEREO ISOLATION</span><strong id="diagnostic-crosstalk-value">—</strong><small id="diagnostic-crosstalk-detail">—</small></article>
+              <article><span>TAPE SPEED</span><strong id="diagnostic-speed-value">—</strong><small id="diagnostic-speed-detail">—</small></article>
+            </div>
+            <div class="eq-calibration-status">
+              <strong id="eq-calibration-status">Ready to run a diagnostic</strong>
+              <small id="eq-calibration-detail">Step 1: record the test signal. Step 2: capture the full cassette playback and upload that audio file.</small>
+              <div class="eq-analysis-stages" id="eq-analysis-stages" aria-label="Analysis stages">
+                <span data-stage="decode"><i></i>DECODE</span>
+                <span data-stage="markers"><i></i>MARKERS</span>
+                <span data-stage="sweeps"><i></i>SWEEPS</span>
+                <span data-stage="report"><i></i>REPORT</span>
+              </div>
+              <div class="eq-marker-diagnostics" id="eq-marker-diagnostics" aria-label="Detected marker details" hidden></div>
+              <div class="dubbing-progress" role="progressbar" aria-label="Calibration progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="eq-calibration-progress"></i></div>
+            </div>
+            <div class="monitor-actions eq-calibration-actions">
+              <button class="button monitor-button" id="eq-record-signal">1 · Record test signal</button>
+              <button class="button subtle" id="eq-cancel-calibration" hidden>Cancel</button>
+            </div>
+          </aside>
+        </section>
+
+        <section class="playback-view" id="playback-view" aria-label="Playback mode">
+          <div class="playback-backdrop" id="playback-backdrop"></div>
+          <header class="playback-header">
+            <div>
+              <p class="eyebrow">CASSETTE PLAYBACK</p>
+              <strong id="playback-project">Standalone tape player</strong>
+            </div>
+            <div class="playback-header-actions">
+              <label class="playback-device-select">
+                <span>INPUT</span>
+                <select id="playback-input-device" aria-label="Playback input device">
+                  <option value="">System default input</option>
+                </select>
+              </label>
+              <button class="icon-button small" id="playback-refresh-inputs" title="Refresh input devices">↻</button>
+              <span class="playback-source" id="playback-source"><i></i> WAITING FOR TAPE</span>
+              <button class="button subtle" id="back-to-edit">
+                <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h16"/></svg>
+                Edit timeline
+              </button>
+            </div>
+          </header>
+
+          <div class="playback-stage">
+            <div class="playback-artwork-column">
+              <div class="playback-artwork-shell">
+                <div class="playback-artwork-fallback" id="playback-artwork-fallback"><span>CC</span></div>
+                <img id="playback-cover" alt="Current song cover">
+                <span class="artwork-lane" id="playback-lane">TRACK A1</span>
+              </div>
+              <div class="up-next-card">
+                <span>UP NEXT</span>
+                <strong id="playback-next-title">End of side</strong>
+                <small id="playback-next-artist">No following clip</small>
+              </div>
+            </div>
+
+            <article class="playback-information">
+              <p class="playback-state" id="playback-state">READY</p>
+              <h1 id="playback-title">Waiting for the cassette</h1>
+              <p class="playback-artist" id="playback-artist">Start playback or audio input to begin</p>
+              <dl class="playback-metadata">
+                <div><dt>ALBUM</dt><dd id="playback-album">—</dd></div>
+                <div><dt>NETEASE ID</dt><dd id="playback-track-id">—</dd></div>
+                <div><dt>STREAM QUALITY</dt><dd id="playback-quality">-</dd></div>
+                <div><dt>TAPE POSITION</dt><dd id="playback-tape-time">0:00.0</dd></div>
+              </dl>
+              <div class="readonly-progress" id="playback-progress" role="progressbar" aria-label="Song progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <span id="playback-progress-fill"></span>
+              </div>
+              <div class="playback-times">
+                <strong id="playback-song-time">0:00.0</strong>
+                <span id="playback-song-duration">0:00.0</span>
+              </div>
+              <div class="tape-control-notice">
+                <span class="tape-control-icon"><i></i><i></i></span>
+                <div>
+                  <strong id="playback-tape-status">Listening for the modulated signal</strong>
+                  <small>Playback, pause, song selection, and position follow the cassette input automatically.</small>
+                </div>
+              </div>
+              <div class="playback-input-meter">
+                <div><span>INPUT SIGNAL</span><b id="playback-input-level-label">NO SIGNAL</b></div>
+                <div class="input-meter-track"><i id="playback-input-level-fill"></i></div>
+                <small id="playback-input-channels">L — · R —</small>
+              </div>
+            </article>
+
+            <section class="lyrics-panel" aria-label="Lyrics">
+              <div class="lyrics-heading">
+                <div><p class="eyebrow">TIMED LYRICS</p><h2>Lyrics</h2></div>
+                <span id="lyrics-language">ORIGINAL</span>
+              </div>
+              <div class="lyrics-scroll" id="playback-lyrics" aria-live="polite">
+                <p class="lyrics-empty">Lyrics will appear when track metadata is available.</p>
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="track-dialog">
+      <form method="dialog" id="track-form">
+        <div class="dialog-heading">
+          <div><p class="eyebrow">MANUAL ENTRY</p><h2>Add a NetEase track</h2></div>
+          <button value="cancel" class="icon-button">×</button>
+        </div>
+        <label>NetEase song ID<input name="neteaseId" required inputmode="numeric" placeholder="e.g. 186016"></label>
+        <label>Title<input name="title" required placeholder="Track title"></label>
+        <label>Artist<input name="artist" placeholder="Artist"></label>
+        <label>Album<input name="album" placeholder="Album title"></label>
+        <label>Duration <div class="duration-inputs"><input name="minutes" type="number" min="0" value="3"><span>min</span><input name="seconds" type="number" min="0" max="59" value="30"><span>sec</span></div></label>
+        <div class="dialog-actions">
+          <button value="cancel" class="button subtle">Cancel</button>
+          <button value="default" class="button primary" id="confirm-track">Add to timeline</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="login-dialog" class="login-dialog">
+      <div class="dialog-heading">
+        <div><p class="eyebrow">NETEASE CLOUD MUSIC</p><h2>Connect your account</h2></div>
+        <button class="icon-button" id="close-login" aria-label="Close login">×</button>
+      </div>
+      <div class="qr-shell">
+        <img id="login-qr" alt="NetEase Cloud Music login QR code">
+        <div class="qr-placeholder" id="qr-placeholder">
+          <span class="loader-ring"></span>
+          <strong>Creating secure login…</strong>
+        </div>
+      </div>
+      <p class="login-instruction">Scan with the NetEase Cloud Music mobile app, then confirm the login on your phone.</p>
+      <div class="login-status" id="login-status"><i></i><span>Waiting for QR code</span></div>
+      <p class="privacy-note">The login cookie is encrypted for your Windows account. It is never sent to the browser or saved in a project.</p>
+    </dialog>
+
+    <dialog id="dubbing-dialog" class="dubbing-dialog">
+      <div class="dialog-heading">
+        <div><p class="eyebrow">REAL-TIME DUBBING</p><h2 id="dubbing-title">Send control signal to cassette deck</h2></div>
+        <button class="icon-button" id="close-dubbing" aria-label="Close dubbing controls">&times;</button>
+      </div>
+      <p class="dubbing-description" id="dubbing-description">The encoded signal is routed to the selected output. Digital music monitoring stays on the computer's normal playback output.</p>
+      <label class="switch-row" for="dub-actual-music">
+        <span><strong>Dub actual music</strong><small>Off records the control signal; on records the songs themselves</small></span>
+        <input id="dub-actual-music" type="checkbox">
+        <i aria-hidden="true"></i>
+      </label>
+      <label class="dubbing-field"><span id="dubbing-output-label">CONTROL SIGNAL OUTPUT</span>
+        <div class="dubbing-output-row">
+          <select id="dub-output-device" aria-label="Dubbing output device"><option value="">System default output</option></select>
+          <button class="icon-button small" id="refresh-outputs" title="Refresh output devices">&#8635;</button>
+        </div>
+      </label>
+      <label class="dubbing-field" id="dub-quality-field">MUSIC QUALITY
+        <select id="dub-music-quality" aria-label="Music quality"></select>
+      </label>
+      <label class="switch-row" for="dub-music-monitor">
+        <span><strong>Music monitor</strong><small id="dub-monitor-description">Play digital music while the control signal is being dubbed</small></span>
+        <input id="dub-music-monitor" type="checkbox">
+        <i aria-hidden="true"></i>
+      </label>
+      <div class="dubbing-progress" id="dubbing-progress" role="progressbar" aria-label="Dubbing progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="dubbing-progress-fill"></i></div>
+      <div class="dubbing-readout"><span id="dubbing-status"><i></i><b>Ready - preload the control signal</b></span><time id="dubbing-time">0:00.0</time></div>
+      <section class="dubbing-preflight" id="dubbing-preflight" aria-live="polite" hidden>
+        <header><strong id="dubbing-preflight-title">Music access check</strong><span id="dubbing-preflight-summary"></span></header>
+        <ul id="dubbing-preflight-list"></ul>
+      </section>
+      <p class="dubbing-warning" id="dubbing-warning">For a clean recording, route the control signal to a dedicated interface output.</p>
+      <div class="dialog-actions">
+        <button class="button subtle" id="stop-dubbing" hidden>Stop</button>
+        <button class="button primary" id="preload-dubbing">Preload control · side A</button>
+        <button class="button primary" id="start-dubbing" hidden>Start recording · side A</button>
+      </div>
+    </dialog>
+
+    <dialog id="dubbing-cancel-dialog" class="delete-mixtape-dialog dubbing-cancel-dialog">
+      <form method="dialog" id="dubbing-cancel-form">
+        <div class="dialog-heading">
+          <div><p class="eyebrow">CLEAR PRELOAD</p><h2>Clear preloaded audio?</h2></div>
+          <button value="cancel" class="icon-button" aria-label="Close preload warning">&times;</button>
+        </div>
+        <p>The prepared audio will be released. You will need to preload again before recording; your mixtape edits will not be affected.</p>
+        <div class="dialog-actions">
+          <button value="cancel" class="button subtle">Keep preloaded</button>
+          <button value="default" class="button danger" id="confirm-cancel-dubbing">Clear preload</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="settings-dialog" class="settings-dialog">
+      <div class="dialog-heading">
+        <div><p class="eyebrow">APPLICATION</p><h2>Settings</h2></div>
+        <button class="icon-button" id="close-settings" aria-label="Close settings">&times;</button>
+      </div>
+      <section class="settings-provider" aria-label="Music API account">
+        <div class="settings-provider-copy">
+          <p class="eyebrow">MUSIC API</p>
+          <div><span class="connection-dot disconnected"></span><strong id="provider-status">Checking connection&hellip;</strong></div>
+          <small>Connect NetEase Cloud Music for library search, music preview, playback, and music dubbing.</small>
+        </div>
+        <button id="netease-account-action" class="button primary">Connect</button>
+      </section>
+      <p class="settings-description">Choose independent devices for cassette input, digital music playback, and real-time dubbing.</p>
+      <div class="settings-fields">
+        <label>LANGUAGE
+          <select id="settings-language" aria-label="Language">
+            <option value="en">English</option>
+            <option value="zh-CN">简体中文</option>
+          </select>
+          <small>Choose the interface language. Changes apply immediately.</small>
+        </label>
+        <label>CASSETTE INPUT
+          <select id="settings-input-device"><option value="">System default input</option></select>
+          <small>The sound card input connected to the cassette deck.</small>
+        </label>
+        <label>INPUT NOISE GATE
+          <span class="noise-gate-control">
+            <input id="settings-noise-gate" type="range" min="-90" max="-20" step="1" value="-75" aria-label="Input noise gate threshold">
+            <output id="settings-noise-gate-value" for="settings-noise-gate">-75 dBFS</output>
+          </span>
+          <small>Set this just above the idle noise level and below the control signal level. Moving right makes the gate stricter.</small>
+        </label>
+        <label>MUSIC PLAYBACK OUTPUT
+          <select id="settings-playback-output"><option value="">System default output</option></select>
+          <small>NetEase playback and editor music preview.</small>
+        </label>
+        <label>MUSIC QUALITY
+          <select id="settings-music-quality"></select>
+          <small>The preferred quality for NetEase playback. The app automatically uses the best authorized lower quality when necessary.</small>
+        </label>
+        <label>DECK DUBBING OUTPUT
+          <select id="settings-dubbing-output"><option value="">System default output</option></select>
+          <small>The interface output used to dub either control data or actual music to the cassette deck.</small>
+        </label>
+      </div>
+      <p class="routing-notice" id="routing-notice">Select separate outputs to monitor music while dubbing.</p>
+      <div class="dialog-actions">
+        <button class="button subtle" id="refresh-audio-devices">Refresh devices</button>
+        <button class="button primary" id="done-settings">Done</button>
+      </div>
+    </dialog>
+
+    <dialog id="provider-warning-dialog" class="provider-warning-dialog">
+      <div class="dialog-heading">
+        <div><p class="eyebrow">MUSIC API</p><h2>Not connected</h2></div>
+        <button class="icon-button" id="close-provider-warning" aria-label="Close connection warning">&times;</button>
+      </div>
+      <p id="provider-warning-message">Connect to the music API before using this feature.</p>
+      <p class="provider-warning-detail">Open Settings from the bottom-left corner to connect your NetEase Cloud Music account.</p>
+      <div class="dialog-actions">
+        <button class="button subtle" id="dismiss-provider-warning">Not now</button>
+        <button class="button primary" id="provider-warning-settings">Open settings</button>
+      </div>
+    </dialog>
+
+    <dialog id="delete-mixtape-dialog" class="delete-mixtape-dialog">
+      <form method="dialog" id="delete-mixtape-form">
+        <div class="dialog-heading">
+          <div><p class="eyebrow">REMOVE FROM COLLECTION</p><h2 id="delete-mixtape-title">Delete selection?</h2></div>
+          <button value="cancel" class="icon-button" aria-label="Close delete confirmation">&times;</button>
+        </div>
+        <p id="delete-mixtape-message">This mixtape and its edited sequence will be removed from this browser.</p>
+        <div class="dialog-actions">
+          <button value="cancel" class="button subtle">Cancel</button>
+          <button value="default" class="button danger" id="confirm-delete-mixtape">Delete</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="mixtape-group-dialog" class="mixtape-group-dialog">
+      <form method="dialog" id="mixtape-group-form">
+        <div class="dialog-heading">
+          <div><p class="eyebrow">ORGANIZE COLLECTION</p><h2>Create group</h2></div>
+          <button value="cancel" class="icon-button" aria-label="Close group dialog">&times;</button>
+        </div>
+        <label>GROUP NAME<input id="mixtape-group-name" maxlength="80" autocomplete="off" placeholder="Favorites"></label>
+        <div class="dialog-actions">
+          <button value="cancel" class="button subtle">Cancel</button>
+          <button value="default" class="button primary" id="confirm-mixtape-group">Create group</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="mixtape-rename-dialog" class="mixtape-rename-dialog">
+      <form method="dialog" id="mixtape-rename-form">
+        <div class="dialog-heading">
+          <div><p class="eyebrow">EDIT COLLECTION</p><h2 id="mixtape-rename-title">Rename</h2></div>
+          <button value="cancel" class="icon-button" aria-label="Close rename dialog">&times;</button>
+        </div>
+        <label>NAME<input id="mixtape-rename-name" maxlength="120" autocomplete="off"></label>
+        <div class="dialog-actions">
+          <button value="cancel" class="button subtle">Cancel</button>
+          <button value="default" class="button primary">Rename</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="collection-import-dialog" class="collection-import-dialog">
+      <form method="dialog" id="collection-import-form">
+        <div class="dialog-heading">
+          <div><p class="eyebrow">BUILD A NEW MIXTAPE</p><h2>Import complete collection</h2></div>
+          <button value="cancel" class="icon-button" aria-label="Close collection import">&times;</button>
+        </div>
+        <div class="collection-import-source">
+          <div class="collection-import-artwork">
+            <img id="collection-import-cover" alt="">
+            <span id="collection-import-initials">CC</span>
+          </div>
+          <div>
+            <strong id="collection-import-title">Collection</strong>
+            <span id="collection-import-meta">0 tracks</span>
+          </div>
+        </div>
+        <div class="import-length-field">
+          <div><span>TAPE LENGTH</span><strong id="collection-tape-label">C60</strong></div>
+          <div class="tape-presets" aria-label="Common tape lengths">
+            <button type="button" data-import-tape-length="46">C46</button>
+            <button type="button" class="active" data-import-tape-length="60">C60</button>
+            <button type="button" data-import-tape-length="90">C90</button>
+            <button type="button" data-import-tape-length="120">C120</button>
+          </div>
+          <div class="import-length-inputs">
+            <input id="collection-tape-slider" type="range" min="30" max="120" step="1" value="60" aria-label="Tape length in minutes">
+            <input id="collection-tape-custom" type="number" min="1" max="240" step="1" value="60" aria-label="Custom tape length in minutes">
+            <span>MIN</span>
+          </div>
+        </div>
+        <div class="collection-import-plan">
+          <div><span>SIDE A</span><strong id="collection-side-a-plan">0:00 / 30:00</strong></div>
+          <div><span>SIDE B</span><strong id="collection-side-b-plan">0:00 / 30:00</strong></div>
+          <div><span>SIDE CHANGE</span><strong id="collection-cut-plan">Not required</strong></div>
+        </div>
+        <p class="collection-import-warning" id="collection-import-warning"></p>
+        <div class="dialog-actions">
+          <button value="cancel" class="button subtle">Cancel</button>
+          <button value="default" class="button primary" id="confirm-collection-import">Create mixtape</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status"></div>
+    <script type="module" src="/src/app.js"></script>
+  </body>
+</html>

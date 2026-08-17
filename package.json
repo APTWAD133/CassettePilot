@@ -1,0 +1,68 @@
+{
+  "name": "cassettepilot",
+  "productName": "CassettePilot",
+  "version": "0.1.0",
+  "description": "A portable Windows cassette-controlled player and mixtape signal editor.",
+  "author": "APTWAD133",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "main": "electron/main.mjs",
+  "scripts": {
+    "start": "electron .",
+    "dev:web": "node server.mjs",
+    "build:native": "dotnet publish native/CassettePilot.AudioHost/CassettePilot.AudioHost.csproj -c Release -r win-x64 --self-contained true -o native/publish",
+    "test:native": "node scripts/verify-native-pipeline.mjs",
+    "dist": "npm run build:native && electron-builder --win portable --x64",
+    "pack": "npm run build:native && electron-builder --dir --win --x64",
+    "test": "node --test",
+    "test:electron-background": "electron scripts/electron-background-smoke.mjs",
+    "check": "node --check electron/main.mjs && node --check electron/preload.cjs && node --check electron/json-store.mjs && node --check src/app.js && node --check src/i18n.js && node --check src/locales/zh-CN.js && node --check src/music-access.js && node --check src/eq-calibration.js && node --check src/mixtape-collection.js && node --check src/audio-options.js && node --check src/model.js && node --check src/signal.js && node --check src/export-signal.js && node --check src/decoder.js && node --check src/dubbing-encoder-worker.js && node --check src/input-capture-worklet.js && node --check src/input-decoder-pipeline.js && node --check src/input-decoder-worker.js && node --check src/input-meter-worker.js && node --check src/editor-shortcuts.js && node --check src/playback.js && node --check src/tape-sync.js && node --check src/netease-provider-node.js && node --check server.mjs"
+  },
+  "dependencies": {
+    "@neteasecloudmusicapienhanced/api": "4.39.0"
+  },
+  "devDependencies": {
+    "electron": "43.3.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.aptwad133.cassettepilot",
+    "productName": "CassettePilot",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "src/**/*",
+      "index.html",
+      "styles.css",
+      "server.mjs",
+      "package.json",
+      "LICENSE",
+      "THIRD_PARTY_NOTICES.md",
+      "!node_modules/@unblockneteasemusic/server/ca.crt",
+      "!node_modules/@unblockneteasemusic/server/server.crt",
+      "!node_modules/@unblockneteasemusic/server/server.key"
+    ],
+    "extraResources": [
+      {
+        "from": "native/publish",
+        "to": "native",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "CassettePilot-${version}-${arch}.${ext}"
+    }
+  }
+}
