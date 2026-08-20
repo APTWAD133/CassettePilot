@@ -36,6 +36,7 @@
     "files": [
       "electron/**/*",
       "src/**/*",
+      "build/icon.ico",
       "index.html",
       "styles.css",
       "server.mjs",
@@ -54,6 +55,7 @@
       }
     ],
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         {
           "target": "portable",
