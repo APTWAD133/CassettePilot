@@ -534,7 +534,7 @@
         </div>
         <button id="netease-account-action" class="button primary">Connect</button>
       </section>
-      <p class="settings-description">Choose independent devices for cassette input, digital music playback, and real-time dubbing.</p>
+      <p class="settings-description">Choose devices for cassette input, music playback, editing playback, and real-time dubbing.</p>
       <div class="settings-fields">
         <label>LANGUAGE
           <select id="settings-language" aria-label="Language">
@@ -556,7 +556,11 @@
         </label>
         <label>MUSIC PLAYBACK OUTPUT
           <select id="settings-playback-output"><option value="">System default output</option></select>
-          <small>NetEase playback and editor music preview.</small>
+          <small>The output used for tape-controlled music in the Playing zone.</small>
+        </label>
+        <label>EDITING PLAYBACK OUTPUT
+          <select id="settings-editor-playback-output"><option value="same-as-music-playback">Same as music playback</option></select>
+          <small>Timeline and individual-clip previews in the Editing zone.</small>
         </label>
         <label>MUSIC QUALITY
           <select id="settings-music-quality"></select>

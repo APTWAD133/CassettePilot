@@ -2,12 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   AUDIO_QUALITY_OPTIONS,
+  SAME_AS_MUSIC_PLAYBACK_OUTPUT,
   audioQualityFallbackLevels,
   audioQualityFromPlaybackItem,
   legacyBitrateForQuality,
   normalizeAudioQuality,
   playbackQualityResolution,
-  normalizeDubbingSource
+  normalizeDubbingSource,
+  normalizeEditorPlaybackOutputId,
+  resolveEditorPlaybackOutputId
 } from "../src/audio-options.js";
 
 test("NetEase quality levels are normalized before API requests", () => {
@@ -49,4 +52,14 @@ test("dubbing source defaults safely to the control signal", () => {
   assert.equal(normalizeDubbingSource("music"), "music");
   assert.equal(normalizeDubbingSource("control"), "control");
   assert.equal(normalizeDubbingSource("unknown"), "control");
+});
+
+test("editor playback follows music by default but can use an independent output", () => {
+  assert.equal(normalizeEditorPlaybackOutputId(undefined), SAME_AS_MUSIC_PLAYBACK_OUTPUT);
+  assert.equal(normalizeEditorPlaybackOutputId(SAME_AS_MUSIC_PLAYBACK_OUTPUT), SAME_AS_MUSIC_PLAYBACK_OUTPUT);
+  assert.equal(normalizeEditorPlaybackOutputId(""), "");
+  assert.equal(normalizeEditorPlaybackOutputId("editor-speakers"), "editor-speakers");
+  assert.equal(resolveEditorPlaybackOutputId(undefined, "music-speakers"), "music-speakers");
+  assert.equal(resolveEditorPlaybackOutputId("editor-speakers", "music-speakers"), "editor-speakers");
+  assert.equal(resolveEditorPlaybackOutputId("", "music-speakers"), "");
 });

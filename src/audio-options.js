@@ -11,6 +11,8 @@ export const AUDIO_QUALITY_OPTIONS = Object.freeze([
   { value: "jymaster", label: "Master quality" }
 ]);
 
+export const SAME_AS_MUSIC_PLAYBACK_OUTPUT = "same-as-music-playback";
+
 const AUDIO_QUALITY_VALUES = new Set(AUDIO_QUALITY_OPTIONS.map((option) => option.value));
 const CORE_QUALITY_ORDER = Object.freeze(["jymaster", "hires", "lossless", "exhigh", "higher", "standard"]);
 
@@ -65,4 +67,16 @@ export function legacyBitrateForQuality(value) {
 
 export function normalizeDubbingSource(value) {
   return value === "music" ? "music" : "control";
+}
+
+export function normalizeEditorPlaybackOutputId(value) {
+  if (value == null || value === SAME_AS_MUSIC_PLAYBACK_OUTPUT) {
+    return SAME_AS_MUSIC_PLAYBACK_OUTPUT;
+  }
+  return String(value);
+}
+
+export function resolveEditorPlaybackOutputId(editorOutputId, musicOutputId = "") {
+  const normalized = normalizeEditorPlaybackOutputId(editorOutputId);
+  return normalized === SAME_AS_MUSIC_PLAYBACK_OUTPUT ? String(musicOutputId || "") : normalized;
 }

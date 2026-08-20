@@ -57,6 +57,14 @@ internal sealed record PlayerStatus(
     bool Playing,
     bool CarrierLive);
 
+internal sealed record EditorPlaybackFrame(
+    string ClipId,
+    string TrackId,
+    string? AudioUrl,
+    long SourceMs,
+    double GainDb,
+    bool ShouldPlay);
+
 internal sealed class NativeCommand
 {
     public string Type { get; init; } = string.Empty;
@@ -64,4 +72,10 @@ internal sealed class NativeCommand
     public string? OutputDeviceId { get; init; }
     public string? Quality { get; init; }
     public double? NoiseGateDb { get; init; }
+    public string? ClipId { get; init; }
+    public string? TrackId { get; init; }
+    public string? AudioUrl { get; init; }
+    public long? SourceMs { get; init; }
+    public double? GainDb { get; init; }
+    public bool? ShouldPlay { get; init; }
 }

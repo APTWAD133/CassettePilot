@@ -61,9 +61,12 @@ import {
 import { TapeSynchronizer } from "./tape-sync.js";
 import {
   AUDIO_QUALITY_OPTIONS,
+  SAME_AS_MUSIC_PLAYBACK_OUTPUT,
   audioQualityLabel,
   normalizeAudioQuality,
-  normalizeDubbingSource
+  normalizeDubbingSource,
+  normalizeEditorPlaybackOutputId,
+  resolveEditorPlaybackOutputId
 } from "./audio-options.js";
 import {
   collectionNodeKey,
@@ -131,6 +134,7 @@ function normalizeAudioRouting(value) {
   return {
     inputDeviceId: String(value?.inputDeviceId || ""),
     playbackOutputId: String(value?.playbackOutputId || ""),
+    editorPlaybackOutputId: normalizeEditorPlaybackOutputId(value?.editorPlaybackOutputId),
     dubbingOutputId: String(value?.dubbingOutputId || ""),
     musicQuality: normalizeAudioQuality(value?.musicQuality),
     dubbingSource: normalizeDubbingSource(value?.dubbingSource),
@@ -207,6 +211,21 @@ function browserPlaybackOutputId() {
   return nativeAudio
     ? matchingWebPlaybackOutputId(audioRouting.playbackOutputId)
     : audioRouting.playbackOutputId;
+}
+
+function browserEditorPlaybackOutputId() {
+  const resolved = resolveEditorPlaybackOutputId(
+    audioRouting.editorPlaybackOutputId,
+    audioRouting.playbackOutputId
+  );
+  return nativeAudio ? matchingWebPlaybackOutputId(resolved) : resolved;
+}
+
+function nativeEditorPlaybackOutputId() {
+  return resolveEditorPlaybackOutputId(
+    audioRouting.editorPlaybackOutputId,
+    audioRouting.playbackOutputId
+  );
 }
 
 async function routeMediaElement(media, outputId, { strict = false } = {}) {
@@ -383,7 +402,7 @@ function traceTape(event, details = {}) {
 
 class AudioPlaybackEngine {
   constructor({
-    outputDeviceId = () => browserPlaybackOutputId(),
+    outputDeviceId = () => browserEditorPlaybackOutputId(),
     strictOutput = false,
     waitForMetadata = false,
     strictPlayback = false
@@ -512,6 +531,48 @@ class AudioPlaybackEngine {
     this.gainRouter.reset();
     this.entries.clear();
     this.reportedFailures.clear();
+  }
+}
+
+class NativeEditorPlaybackEngine {
+  async sync(timelineMs, shouldPlay) {
+    if (!project.clips.length || !shouldPlay) {
+      this.pauseAll();
+      return;
+    }
+    const active = activeClipsAt(
+      project,
+      Math.min(timelineMs, Math.max(0, project.totalDurationMs - 1))
+    )[0];
+    if (!active) {
+      this.pauseAll();
+      return;
+    }
+    await nativeAudio.command({
+      type: "editorSync",
+      clipId: active.clip.id,
+      trackId: active.clip.neteaseId || "",
+      audioUrl: active.clip.audioUrl || null,
+      sourceMs: active.sourceMs,
+      gainDb: active.gainDb,
+      shouldPlay: true
+    });
+  }
+
+  pauseAll() {
+    nativeAudio.command({ type: "editorPause" }).catch(() => {});
+  }
+
+  setOutputDevice(deviceId) {
+    return nativeAudio.command({ type: "setEditorOutput", outputDeviceId: deviceId || "" });
+  }
+
+  relocate() {
+    this.pauseAll();
+  }
+
+  reset() {
+    nativeAudio.command({ type: "editorReset" }).catch(() => {});
   }
 }
 
@@ -721,7 +782,7 @@ class TapePlaybackEngine {
   }
 }
 
-const audioEngine = new AudioPlaybackEngine();
+const audioEngine = nativeAudio ? new NativeEditorPlaybackEngine() : new AudioPlaybackEngine();
 const tapeAudioEngine = new TapePlaybackEngine();
 const inspectorPreviewGain = new MediaGainRouter();
 
@@ -765,6 +826,7 @@ function stopInspectorPreview({ resetPosition = true } = {}) {
     inspectorPreview.audio.pause();
     inspectorPreview.audio.remove();
   }
+  if (inspectorPreview?.native) nativeAudio.command({ type: "editorPause" }).catch(() => {});
   inspectorPreview = null;
   inspectorPreviewGain.reset();
   setInspectorPreviewButton(false);
@@ -776,13 +838,16 @@ function stopInspectorPreview({ resetPosition = true } = {}) {
 }
 
 function updateInspectorPreviewClock() {
-  if (!inspectorPreview?.audio) return;
+  if (!inspectorPreview) return;
   const { audio, clip } = inspectorPreview;
   const duration = Math.max(1, clipDuration(clip));
-  const localMs = Math.max(0, audio.currentTime * 1000 - clip.trimStartMs);
+  const sourceMs = inspectorPreview.native
+    ? inspectorPreview.sourceMs + performance.now() - inspectorPreview.startedAt
+    : audio.currentTime * 1000;
+  const localMs = Math.max(0, sourceMs - clip.trimStartMs);
   elements["inspector-preview-seek"].value = String(Math.min(1000, localMs / duration * 1000));
   elements["inspector-preview-time"].textContent = formatTime(localMs, true);
-  if (audio.currentTime * 1000 >= clip.trimEndMs || audio.ended) {
+  if (sourceMs >= clip.trimEndMs || audio?.ended) {
     stopInspectorPreview();
     return;
   }
@@ -802,6 +867,24 @@ async function startInspectorPreview() {
   elements["inspector-preview-toggle"].disabled = true;
   elements["inspector-preview-toggle"].textContent = "Loading";
   try {
+    const sourceMs = clip.trimStartMs + clipDuration(clip) * requestedRatio;
+    if (nativeAudio) {
+      await nativeAudio.command({
+        type: "editorSync",
+        clipId: clip.id,
+        trackId: clip.neteaseId || "",
+        audioUrl: clip.audioUrl || null,
+        sourceMs,
+        gainDb: clip.gainDb,
+        shouldPlay: true
+      });
+      if (selectedClipId !== clip.id || inspectorPreview?.previewToken !== previewToken) return;
+      inspectorPreview = { native: true, clip, previewToken, sourceMs, startedAt: performance.now() };
+      elements["inspector-preview-toggle"].disabled = false;
+      setInspectorPreviewButton(true);
+      inspectorPreviewFrame = requestAnimationFrame(updateInspectorPreviewClock);
+      return;
+    }
     let url = clip.audioUrl;
     if (!url) {
       const trackId = encodeURIComponent(clip.neteaseId);
@@ -814,7 +897,7 @@ async function startInspectorPreview() {
     if (!url) throw new Error("No playable URL returned");
     const audio = new Audio(url);
     audio.preload = "auto";
-    const gainNode = await inspectorPreviewGain.attach(audio, browserPlaybackOutputId());
+    const gainNode = await inspectorPreviewGain.attach(audio, browserEditorPlaybackOutputId());
     await waitForMediaMetadata(audio);
     if (selectedClipId !== clip.id || inspectorPreview?.previewToken !== previewToken) {
       audio.remove();
@@ -836,7 +919,7 @@ async function startInspectorPreview() {
 }
 
 function toggleInspectorPreview() {
-  if (inspectorPreview?.audio && !inspectorPreview.audio.paused) stopInspectorPreview();
+  if (inspectorPreview?.native || (inspectorPreview?.audio && !inspectorPreview.audio.paused)) stopInspectorPreview();
   else startInspectorPreview();
 }
 
@@ -2205,6 +2288,7 @@ function inputDeviceSelectors() {
 function outputDeviceSelectors() {
   return [
     [elements["settings-playback-output"], "playbackOutputId"],
+    [elements["settings-editor-playback-output"], "editorPlaybackOutputId"],
     [elements["settings-dubbing-output"], "dubbingOutputId"],
     [elements["dub-output-device"], "dubbingOutputId"],
     [elements["eq-calibration-output"], "dubbingOutputId"]
@@ -2723,37 +2807,51 @@ function changeLanguage(event) {
 }
 
 async function refreshOutputDevices() {
-  if (!navigator.mediaDevices?.enumerateDevices) {
-    outputDeviceSelectors().forEach(([select]) => {
-      select.innerHTML = '<option value="">System default output</option>';
+  if (!nativeAudio && !navigator.mediaDevices?.enumerateDevices) {
+    outputDeviceSelectors().forEach(([select, setting]) => {
+      select.innerHTML = setting === "editorPlaybackOutputId"
+        ? `<option value="${SAME_AS_MUSIC_PLAYBACK_OUTPUT}">Same as music playback</option>`
+        : '<option value="">System default output</option>';
       select.disabled = true;
     });
     updateMusicMonitorAvailability();
     return;
   }
   try {
-    const devices = (await navigator.mediaDevices.enumerateDevices()).filter((device) => device.kind === "audiooutput");
+    const devices = navigator.mediaDevices?.enumerateDevices
+      ? (await navigator.mediaDevices.enumerateDevices()).filter((device) => device.kind === "audiooutput")
+      : [];
     webAudioOutputs = devices;
     const webOptions = [
       '<option value="">System default output</option>',
       ...devices.map((device, index) => `<option value="${escapeHtml(device.deviceId)}">${escapeHtml(device.label || `Output device ${index + 1}`)}</option>`)
     ].join("");
     outputDeviceSelectors().forEach(([select, setting]) => {
-      const sourceDevices = nativeAudio && setting === "playbackOutputId" ? nativeAudioDevices.outputs : devices;
-      select.innerHTML = nativeAudio && setting === "playbackOutputId"
+      const nativeWasapiSetting = nativeAudio
+        && (setting === "playbackOutputId" || setting === "editorPlaybackOutputId");
+      const sourceDevices = nativeWasapiSetting ? nativeAudioDevices.outputs : devices;
+      const deviceOptions = nativeWasapiSetting
         ? [
             '<option value="">System default output (native WASAPI)</option>',
             ...sourceDevices.map((device, index) => `<option value="${escapeHtml(device.id)}">${escapeHtml(device.label || `Output device ${index + 1}`)}</option>`)
+          ]
+        : [webOptions];
+      select.innerHTML = setting === "editorPlaybackOutputId"
+        ? [
+            `<option value="${SAME_AS_MUSIC_PLAYBACK_OUTPUT}">Same as music playback</option>`,
+            ...deviceOptions
           ].join("")
-        : webOptions;
+        : deviceOptions.join("");
       const selectedId = audioRouting[setting];
-      if (sourceDevices.some((device) => (device.deviceId || device.id) === selectedId)) select.value = selectedId;
+      if ([...select.options].some((option) => option.value === selectedId)) select.value = selectedId;
       select.disabled = false;
     });
     updateMusicMonitorAvailability();
   } catch {
-    outputDeviceSelectors().forEach(([select]) => {
-      select.innerHTML = '<option value="">System default output</option>';
+    outputDeviceSelectors().forEach(([select, setting]) => {
+      select.innerHTML = setting === "editorPlaybackOutputId"
+        ? `<option value="${SAME_AS_MUSIC_PLAYBACK_OUTPUT}">Same as music playback</option>`
+        : '<option value="">System default output</option>';
     });
   }
 }
@@ -2764,18 +2862,33 @@ async function changePlaybackOutput(event) {
   if (nativeAudio) {
     await nativeAudio.command({ type: "setOutput", outputDeviceId: audioRouting.playbackOutputId });
     const webOutputId = matchingWebPlaybackOutputId(audioRouting.playbackOutputId);
-    await Promise.all([
-      audioEngine.setOutputDevice(webOutputId),
-      tapeAudioEngine.setOutputDevice(webOutputId)
-    ]);
+    await tapeAudioEngine.setOutputDevice(webOutputId);
+    if (audioRouting.editorPlaybackOutputId === SAME_AS_MUSIC_PLAYBACK_OUTPUT) {
+      setPreviewPlaying(false);
+      stopInspectorPreview();
+      await audioEngine.setOutputDevice(audioRouting.playbackOutputId);
+    }
   } else {
-    await Promise.all([
-      audioEngine.setOutputDevice(audioRouting.playbackOutputId),
-      tapeAudioEngine.setOutputDevice(audioRouting.playbackOutputId)
-    ]);
+    await tapeAudioEngine.setOutputDevice(audioRouting.playbackOutputId);
+    if (audioRouting.editorPlaybackOutputId === SAME_AS_MUSIC_PLAYBACK_OUTPUT) {
+      setPreviewPlaying(false);
+      stopInspectorPreview();
+      await audioEngine.setOutputDevice(browserEditorPlaybackOutputId());
+    }
   }
   updateMusicMonitorAvailability();
   notify("Music playback output updated");
+}
+
+async function changeEditorPlaybackOutput(event) {
+  audioRouting.editorPlaybackOutputId = normalizeEditorPlaybackOutputId(event.currentTarget.value);
+  saveAudioRouting();
+  setPreviewPlaying(false);
+  stopInspectorPreview();
+  await audioEngine.setOutputDevice(nativeAudio
+    ? nativeEditorPlaybackOutputId()
+    : browserEditorPlaybackOutputId());
+  notify("Editing playback output updated");
 }
 
 function changeDubbingOutput(event) {
@@ -3416,7 +3529,9 @@ function handleNativeAudioEvent(event) {
   }
   if (event.type === "error") {
     console.error("Native audio host", event);
-    if (event.scope === "native-host" || event.scope === "track") notify(event.message || "Native audio host error");
+    if (["native-host", "track", "editorTrack", "editorPlayer"].includes(event.scope)) {
+      notify(event.message || "Native audio host error");
+    }
   }
 }
 
@@ -4756,6 +4871,20 @@ elements["inspector-preview-seek"].addEventListener("input", (event) => {
   if (inspectorPreview?.audio && inspectorPreview.clip.id === clip.id) {
     inspectorPreview.audio.currentTime = (clip.trimStartMs + localMs) / 1000;
   }
+  if (inspectorPreview?.native && inspectorPreview.clip.id === clip.id) {
+    const sourceMs = clip.trimStartMs + localMs;
+    inspectorPreview.sourceMs = sourceMs;
+    inspectorPreview.startedAt = performance.now();
+    nativeAudio.command({
+      type: "editorSync",
+      clipId: clip.id,
+      trackId: clip.neteaseId || "",
+      audioUrl: clip.audioUrl || null,
+      sourceMs,
+      gainDb: clip.gainDb,
+      shouldPlay: true
+    }).catch((error) => notify(error.message || "Could not seek editor preview"));
+  }
 });
 elements["undo-action"].addEventListener("click", undo);
 elements["redo-action"].addEventListener("click", redo);
@@ -4821,6 +4950,7 @@ elements["refresh-audio-devices"].addEventListener("click", () => {
   return Promise.all([refreshInputDevices(), refreshOutputDevices()]);
 });
 elements["settings-playback-output"].addEventListener("change", changePlaybackOutput);
+elements["settings-editor-playback-output"].addEventListener("change", changeEditorPlaybackOutput);
 elements["settings-dubbing-output"].addEventListener("change", changeDubbingOutput);
 elements["settings-music-quality"].addEventListener("change", changeMusicQuality);
 elements["dub-music-quality"].addEventListener("change", changeMusicQuality);
@@ -4908,6 +5038,10 @@ if (nativeAudio) {
     for (const event of state?.events || []) handleNativeAudioEvent(event);
     nativeAudio.command({ type: "listDevices" }).catch(() => {});
     nativeAudio.command({ type: "setQuality", quality: audioRouting.musicQuality }).catch(() => {});
+    nativeAudio.command({
+      type: "setEditorOutput",
+      outputDeviceId: nativeEditorPlaybackOutputId()
+    }).catch(() => {});
   }).catch((error) => notify(`Native audio host unavailable: ${error.message}`));
 }
 

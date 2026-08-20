@@ -132,9 +132,12 @@ or local RF interference without changing the encoded signal.
 In the portable Windows app, a native .NET host captures the chosen WASAPI input,
 converts it to stereo float PCM, and resamples it to 48 kHz. A high-priority
 decoder task performs continuous input/pilot metering, symbol search, Hamming
-correction, and CRC validation. It also owns transport state and WASAPI music
-output, so Electron renderer scheduling cannot delay stop, rewind, track change,
-or cassette replacement. Electron receives meter and frame events only for UI.
+correction, and CRC validation. It also owns transport state, cassette-controlled
+WASAPI music output, and a separate WASAPI session for timeline and clip previews.
+The preview session follows the music output by default but can target another
+render device. Electron renderer scheduling therefore cannot delay stop, rewind,
+track change, or cassette replacement. Electron receives meter and frame events
+only for UI.
 
 The browser-only development fallback retains the `AudioWorklet`, meter worker,
 and decoder worker implementation with compatible 2,048-sample capture blocks.

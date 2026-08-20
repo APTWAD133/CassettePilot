@@ -54,6 +54,7 @@ internal static class Program
         }
 
         using var player = new NativePlayerEngine(apiBase, Emit);
+        using var editorPlayer = new NativeEditorPlayerEngine(apiBase, Emit);
         using var capture = new AudioCaptureEngine(Emit, player);
         Emit("ready", new { version = "0.1.0", protocolVersion = SignalProtocol.Version });
         EmitDevices(Emit);
@@ -84,12 +85,37 @@ internal static class Program
                         player.SetOutputDevice(command.OutputDeviceId);
                         Emit("outputChanged", new { outputDeviceId = command.OutputDeviceId });
                         break;
+                    case "setEditorOutput":
+                        editorPlayer.SetOutputDevice(command.OutputDeviceId);
+                        Emit("editorOutputChanged", new { outputDeviceId = command.OutputDeviceId });
+                        break;
                     case "setNoiseGate":
                         if (command.NoiseGateDb.HasValue) capture.SetNoiseGate(command.NoiseGateDb.Value);
                         break;
                     case "setQuality":
                         player.SetQuality(command.Quality);
+                        editorPlayer.SetQuality(command.Quality);
                         Emit("qualityChanged", new { quality = command.Quality });
+                        break;
+                    case "editorSync":
+                        if (string.IsNullOrWhiteSpace(command.ClipId))
+                        {
+                            editorPlayer.Pause();
+                            break;
+                        }
+                        editorPlayer.PostFrame(new EditorPlaybackFrame(
+                            command.ClipId,
+                            command.TrackId ?? string.Empty,
+                            command.AudioUrl,
+                            Math.Max(0, command.SourceMs ?? 0),
+                            command.GainDb ?? 0,
+                            command.ShouldPlay == true));
+                        break;
+                    case "editorPause":
+                        editorPlayer.Pause();
+                        break;
+                    case "editorReset":
+                        editorPlayer.ResetTracks();
                         break;
                     case "resetTracks":
                         player.ResetTracks();

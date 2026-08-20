@@ -16,7 +16,7 @@ The application does not grant permission to download, record, retain, redistrib
 
 - Visual two-sided mixtape editor with overwrite editing, trim points, fades, gain automation, snapping, and keyboard shortcuts.
 - 48 kHz stereo control-signal generation with carrier, error correction, and CRC validation.
-- Native Windows WASAPI input/output with tape-speed recovery and rapid pause on carrier loss.
+- Native Windows WASAPI input/output, with independent device routing for cassette-controlled playback and editor previews, tape-speed recovery, and rapid pause on carrier loss.
 - Cassette deck and tape diagnostic measurements.
 - Embedded or external compatible NetEase provider for authorized search, metadata, login, and playback.
 - Encrypted desktop login-cookie storage tied to the current Windows account.
