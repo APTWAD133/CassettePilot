@@ -25,14 +25,20 @@ The application does not grant permission to download, record, retain, redistrib
 
 See [docs/protocol.md](docs/protocol.md) for the signal format and physical-layer design.
 
-## Requirements
+## Download and run
+
+Download `CassettePilot-0.1.0-x64.exe` from [GitHub Releases](https://github.com/APTWAD133/CassettePilot/releases) when the release is published. The portable executable is self-contained: end users do not need Node.js, npm, the .NET SDK, or an installer.
+
+End-user requirements:
 
 - Windows 10 or newer on x64 hardware.
-- Node.js 20 or newer and npm.
-- .NET 8 SDK for native development and packaging.
 - A cassette deck and suitable audio interface for physical control and diagnostic workflows.
 
-## Install and run
+The executable is currently unsigned, so Windows SmartScreen may show a warning. Verify the release checksum before running it.
+
+## Build and run from source
+
+Development requires Windows on x64 hardware, Node.js 20 or newer with npm, and the .NET 8 SDK.
 
 Install the exact locked dependencies and build the native host:
 
@@ -108,7 +114,7 @@ Build the no-install Windows x64 executable:
 npm run dist
 ```
 
-Output is written to `dist/`. The executable is unsigned, so Windows SmartScreen may warn until a code-signing certificate is configured. Do not publish generated packages until you have reviewed their bundled dependency licenses and scanned them for credentials and unwanted local data.
+Output is written to `dist/`. Do not publish generated packages until you have reviewed their bundled dependency licenses, scanned them for credentials and unwanted local data, and recorded a SHA-256 checksum.
 
 ## Privacy and local data
 
@@ -123,4 +129,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development expectations and [SECURIT
 
 ## License
 
-Original project code is available under the [MIT License](LICENSE). Dependencies and service integrations remain subject to their own licenses and terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Original project code and the CassettePilot icon artwork are available under the [MIT License](LICENSE). Dependencies and service integrations remain subject to their own licenses and terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

@@ -49,3 +49,6 @@ Thumbs.db
 .vscode/
 *.user
 *.suo
+
+# Superseded local icon draft; icon-master.png is the release artwork source.
+/icon.png

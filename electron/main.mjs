@@ -66,6 +66,7 @@ function configurePermissions() {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
+    icon: join(import.meta.dirname, "../build/icon.ico"),
     width: 1600,
     height: 1000,
     minWidth: 1120,

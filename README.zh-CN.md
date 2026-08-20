@@ -25,14 +25,20 @@ CassettePilot 是一款以 Windows 为首要平台的 Electron 应用，用于�
 
 信号格式和物理层设计请参阅 [docs/protocol.md](docs/protocol.md)。
 
-## 系统要求
+## 下载与运行
+
+发布完成后，可从 [GitHub Releases](https://github.com/APTWAD133/CassettePilot/releases) 下载 `CassettePilot-0.1.0-x64.exe`。该便携式可执行文件为自包含程序：普通用户无需安装 Node.js、npm、.NET SDK 或安装程序。
+
+普通用户的系统要求：
 
 - x64 硬件上的 Windows 10 或更高版本。
-- Node.js 20 或更高版本及 npm。
-- 用于原生开发和打包的 .NET 8 SDK。
 - 若要使用实体控制和诊断工作流，需要磁带卡座及合适的音频接口。
 
-## 安装与运行
+当前可执行文件尚未进行代码签名，因此 Windows SmartScreen 可能显示警告。运行前请核对发布页面提供的校验值。
+
+## 从源代码构建并运行
+
+开发环境需要 x64 Windows、Node.js 20 或更高版本及 npm，以及 .NET 8 SDK。
 
 安装锁定版本的依赖并构建原生音频主机：
 
@@ -108,7 +114,7 @@ npm run test:electron-background
 npm run dist
 ```
 
-输出位于 `dist/`。当前可执行文件未进行代码签名，因此在配置代码签名证书之前，Windows SmartScreen 可能显示警告。在发布生成的安装包前，请检查其中包含的依赖许可证，并扫描凭据和不应包含的本地数据。
+输出位于 `dist/`。在发布生成的软件包前，请检查其中包含的依赖许可证，扫描凭据和不应包含的本地数据，并记录 SHA-256 校验值。
 
 ## 隐私与本地数据
 
@@ -123,4 +129,4 @@ npm run dist
 
 ## 许可证
 
-项目原创代码采用 [MIT License](LICENSE)。依赖项和服务集成仍受其各自许可证与条款约束，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+项目原创代码和 CassettePilot 图标作品采用 [MIT License](LICENSE)。依赖项和服务集成仍受其各自许可证与条款约束，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
