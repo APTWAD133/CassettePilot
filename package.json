@@ -23,7 +23,7 @@
     "@neteasecloudmusicapienhanced/api": "4.39.0"
   },
   "devDependencies": {
-    "electron": "43.3.0",
+    "electron": "43.5.0",
     "electron-builder": "26.15.3"
   },
   "build": {
